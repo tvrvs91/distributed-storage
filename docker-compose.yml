@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # Первый узел системы
+  node1:
+    build: .
+    container_name: storage-node1
+    ports:
+      - "8081:8080"  # Пробрасываем порт 8080 контейнера на 8081 хоста
+    volumes:
+      - node1-data:/root/storage  # Создаём persistent volume для данных
+    command: ["-port", "8080", "-peers", "node2:8080,node3:8080,node4:8080"]
+    networks:
+      - storage-network
+    restart: unless-stopped  # Автоматический перезапуск при падении
+
+  # Второй узел системы
+  node2:
+    build: .
+    container_name: storage-node2
+    ports:
+      - "8082:8080"
+    volumes:
+      - node2-data:/root/storage
+    command: ["-port", "8080", "-peers", "node1:8080,node3:8080,node4:8080"]
+    networks:
+      - storage-network
+    restart: unless-stopped
+
+  # Третий узел системы
+  node3:
+    build: .
+    container_name: storage-node3
+    ports:
+      - "8083:8080"
+    volumes:
+      - node3-data:/root/storage
+    command: ["-port", "8080", "-peers", "node1:8080,node2:8080,node4:8080"]
+    networks:
+      - storage-network
+    restart: unless-stopped
+
+  # Четвёртый узел системы
+  node4:
+    build: .
+    container_name: storage-node4
+    ports:
+      - "8084:8080"
+    volumes:
+      - node4-data:/root/storage
+    command: ["-port", "8080", "-peers", "node1:8080,node2:8080,node3:8080"]
+    networks:
+      - storage-network
+    restart: unless-stopped
+
+# Определяем volumes для persistent storage
+# Это гарантирует, что данные не пропадут при перезапуске контейнеров
+volumes:
+  node1-data:
+  node2-data:
+  node3-data:
+  node4-data:
+
+# Создаём изолированную сеть для узлов
+# Это позволяет им общаться друг с другом по именам контейнеров
+networks:
+  storage-network:
+    driver: bridge
